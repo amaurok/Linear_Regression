@@ -1,0 +1,127 @@
+---
+output: word_document
+---
+# Linear Regression study
+Andres Mauricio Castro
+
+## Executive Summary
+
+The following data analysis, is performed for the Motor Trend magazine, whom are interested in exploring the relationship between a set of variables and miles per gallon (MPG).
+
+By using a dataset from the 1974 Motor Trend US magazine to answer the following questions, we are going to answer two main questions, they are interested in:
+
+    - Is an automatic or manual transmission better for miles per gallon (MPG)?
+    - How different is the MPG between automatic and manual transmissions?
+    
+By performing a set o hyphotesis tests, and constructing an optimized linear regression model, finding out if there are confounders which can help to explain better the relationship betweeng the given variables; after validating the final model, we can answer the two questions:
+
+**¿Is an automatic or manual transmission better for MPG?**
+As per our analysis, we can conclude a manual transmission is better for MPG.
+
+**¿Quantify the MPG difference between automatic and manual transmissions?**
+A manual transmission has 2.9 MPGs more than an automatic transmission.
+
+See below all the statistical procedure followed, in order to answer the two questions.
+
+## Data Processing
+
+We load the data, and see the class of variables in the dataset. The predictor variable is numeric, so, let's convert it into a factor, for better interpretability.
+
+```{r}
+data(mtcars)
+head(mtcars)
+mtcars$am <- factor(mtcars$am,labels=c('Automatic','Manual'))
+str(mtcars)
+```
+
+
+## Exploratory Data Analysis
+
+We look at the help of the dataset, to get a feel of the variables meaning, and how they can be related to the outcome, to construct and validate our model.
+```{r}
+?mtcars
+```
+Also, we create a boxplot of the mpg by transmission type;in the figure 1, we can see there is a differente in the mpg by transmission type; the manual transmissions seems to get a better mpg than automatic tranmissions.
+
+In the figure 2, we plot the relationships between the variables in the dataset; we can see the variables cyl, disp, hp, drat, wt, vs and am may have a strong correlation with mpg. In the next section, we will construct the best model, to see which variables are the confounders.
+
+Finally, by performing a hypothesis test, we found the p-value is 0.001374, so, we can reject the null hypothesis, and claim that there is a signficiant difference in the mean MPG between manual and automatic transmissions.
+
+```{r}
+aggregate(mpg~am, data = mtcars, mean)
+automaticData <- mtcars[mtcars$am == "Automatic",]
+manualData <- mtcars[mtcars$am == "Manual",]
+t.test(automaticData$mpg, manualData$mpg)
+```
+
+
+## Model Building And Selection
+
+Firstly, we create a model with all the variables as predictors, and by using an Stepwise Algorithm (function step), we can look for the best model, to explain the variability, including the confounders and the independent variable.
+
+```{r}
+initialModel <- lm(mpg ~ ., data = mtcars)
+optimizedModel <- step(initialModel, direction = "both")
+summary(optimizedModel)
+```
+
+The best model calculated was **lm(formula = mpg ~ wt + qsec + am, data = mtcars)**
+
+By looking at the optimized model, we see the variables wt and qsec are confounders, and the am is the independent variable.
+Also, the R2 value is 0.83, being the maximum obtained from the stepwise function. So, the optimized model can explain of the 83% of the variability.
+
+Now, we can compare the model containing only the am variable as predictor, with the optimized model, and draw some conclusions.
+
+```{r}
+baseModel <- lm(mpg ~ am, data = mtcars)
+anova(baseModel, optimizedModel)
+```
+The p-value obtained is highly significant, and we reject the null hypothesis that the confounders don't contribute to the accuracy of the model.
+
+
+## Conclusion
+
+In the figure 3, we plot the residuals for our best model, and draw some conclusions:
+
+- The residuals are normally distributed (QQPlot).
+- The variance is constant, as indicated in the Scale-Location plot.
+- The residuals are homoskedastic, as the error variance is the same across all the values.
+
+Now, let's look at other conclusions from our best model:
+
+```{r}
+summary(optimizedModel)
+```
+
+- On average, manual transmissions have 2.9 MPGs more than automatic transmissions.
+- mpg increases with increase of qsec.
+- mpg will decrease approximately by 3.9, for every 1000 lb increase in wt (as per the definition of wt variable in the mtcars).
+
+
+## Appendix
+
+#### Figure 1
+MPGs by Transmission Type.
+
+```{r}
+boxplot(mpg~am, data = mtcars,
+         col = c("blue", "red"),
+         xlab = "Transmission",
+         ylab = "Miles per Gallon",
+         main = "MPG by Transmission Type")
+```
+
+#### Figure 2
+Pairs plot for the mtcars dataset.
+
+```{r}
+pairs(mtcars)
+```
+
+#### Figure 3
+Residuals Plot.
+
+```{r}
+par(mfrow = c(2,2))
+plot(optimizedModel)
+```
